@@ -46,3 +46,6 @@ Activity table:
 | 3         | 1         |
 +-----------+-----------+
 </pre>
+
+<img width="562" height="1006" alt="image" src="https://github.com/user-attachments/assets/112ca56a-a6b2-44fb-b889-1ad93b23a8bb" />
+
