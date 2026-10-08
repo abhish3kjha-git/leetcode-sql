@@ -1,7 +1,5 @@
 # Write your MySQL query statement below
 
-
-
 select 
 b.book_id,
 b.name
