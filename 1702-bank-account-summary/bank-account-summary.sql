@@ -1,32 +1,19 @@
-WITH outflow AS (
-    SELECT
-        paid_by,
-        - SUM(amount) AS credit
-    FROM Transactions
-    GROUP BY 1
+# Write your MySQL query statement below
+
+with cte as
+(
+    select pid, sum(amount) as amount from
+    (select paid_by as pid, -1*amount as amount from transactions
+    union all
+    select paid_to as pid, amount from transactions) o
+    group by 1
 ),
-
-inflow AS (
-    SELECT
-        paid_to,
-        SUM(amount) AS credit
-    FROM Transactions
-    GROUP BY 1
+cte2 as
+(
+    select user_id, user_name, credit + coalesce(amount, 0) as credit
+    from users a left join cte b on user_id = pid
 )
-
-SELECT
-    u.user_id,
-    u.user_name,
-
-    COALESCE(
-        (u.credit + COALESCE(o.credit, 0) + COALESCE(i.credit, 0))
-    , u.credit) AS credit,
-
-    CASE
-        WHEN (u.credit + COALESCE(o.credit, 0) + COALESCE(i.credit, 0)) < 0
-        THEN 'Yes' ELSE 'No'
-    END AS credit_limit_breached
-
-FROM Users u
-LEFT JOIN outflow o ON u.user_id = o.paid_by
-LEFT JOIN inflow i ON u.user_id = i.paid_to 
+select *,
+case when credit>=0 then "No"
+else "Yes" end as credit_limit_breached
+from cte2
