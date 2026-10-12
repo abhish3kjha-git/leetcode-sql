@@ -1,13 +1,20 @@
-SELECT 
-  I.invoice_id, 
-  Cust.customer_name, 
-  I.price, 
-  COUNT(DISTINCT C.contact_name) AS contacts_cnt, 
-  COUNT(DISTINCT Nme.customer_name) AS trusted_contacts_cnt 
-FROM 
-  Invoices I 
-  LEFT JOIN Customers Cust ON I.user_id = Cust.customer_id 
-  LEFT JOIN Contacts C ON C.user_id = Cust.customer_id 
-  LEFT JOIN Customers Nme ON Nme.customer_name = C.contact_name 
-GROUP BY 
-  I.invoice_id
+with trusted_contacts as (
+    select con.user_id, 
+        count(con.contact_email) as contacts_cnt, 
+        count(cust.customer_id) as trusted_contacts_cnt
+    from Contacts as con
+        left join Customers as cust on con.contact_email = cust.email
+    group by con.user_id
+    
+)
+
+select 
+    i.invoice_id,
+    c.customer_name,
+    i.price,
+    coalesce(t.contacts_cnt, 0) as contacts_cnt,
+    coalesce(t.trusted_contacts_cnt, 0) as trusted_contacts_cnt
+from Invoices  as i
+    left join trusted_contacts as t on  i.user_id  = t.user_id
+    join Customers as c on i.user_id = c.customer_id
+order by i.invoice_id
