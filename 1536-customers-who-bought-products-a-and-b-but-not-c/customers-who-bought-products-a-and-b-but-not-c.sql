@@ -1,13 +1,9 @@
 # Write your MySQL query statement below
-with cte as
-(
-    select customer_id,
-    count(case when product_name = 'A' then 1 end) as ac,
-    count(case when product_name = 'B' then 1 end) as bc,
-    count(case when product_name = 'C' then 1 end) as cc
-    from orders
-    group by 1
-)
-select a.customer_id, customer_name from cte a join customers b
-on a.customer_id = b.customer_id
-where ac >0 and bc> 0 and cc = 0
+SELECT c.customer_id, customer_name
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id
+HAVING SUM(product_name='A') > 0
+    AND SUM(product_name='B') > 0
+    AND SUM(product_name='C') = 0
+-- ORDER BY c.customer_id;
