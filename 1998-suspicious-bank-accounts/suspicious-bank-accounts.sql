@@ -1,35 +1,34 @@
-# Write your MySQL query statement below
-WITH cte AS
-(
-    SELECT 
-        account_id, 
-        SUM(CASE WHEN type = 'Creditor' THEN amount ELSE 0 END) AS ti, 
-        DATE_FORMAT(`day`, '%Y-%m') AS mth
-    FROM transactions
-    GROUP BY account_id, mth
-),
-cte2 AS
-(
-    SELECT 
-        a.account_id, 
-        a.mth,
-        b.max_income, 
-        a.ti
-    FROM cte a 
-    JOIN accounts b ON a.account_id = b.account_id
-    WHERE a.ti > b.max_income
-),
-cte3 AS
-(
-    SELECT 
-        account_id,
-        mth,
-        -- Get the next exceeding month for the account
-        LEAD(mth) OVER (PARTITION BY account_id ORDER BY mth) AS next_mth
-    FROM cte2
-)
-SELECT DISTINCT account_id
-FROM cte3
--- Check if next_mth is exactly 1 month after mth
-WHERE PERIOD_DIFF(REPLACE(next_mth, '-', ''), REPLACE(mth, '-', '')) = 1
-ORDER BY account_id ASC;
+-- Common Table Expression (CTE) to calculate monthly income and compare with max_income
+WITH MonthlyIncome AS (
+  SELECT 
+    t.account_id, 
+    DATE_FORMAT(t.day, '%Y%m') AS income_month, 
+    -- Format transaction date to 'YYYYMM'
+    SUM(t.amount) AS monthly_income, 
+    -- Calculate total income for the month
+    a.max_income -- Include max_income from Accounts table
+  FROM 
+    Transactions t 
+    LEFT JOIN Accounts a ON a.account_id = t.account_id -- Join with Accounts table
+  WHERE 
+    t.type = 'Creditor' -- Consider only 'Creditor' transactions
+  GROUP BY 
+    t.account_id, 
+    income_month 
+  HAVING 
+    SUM(t.amount) > a.max_income -- Filter months where income exceeds max_income
+    ) -- Final query to find accounts with excessive income for two consecutive months
+SELECT 
+  Income1.account_id 
+FROM 
+  MonthlyIncome Income1, 
+  MonthlyIncome Income2 
+WHERE 
+  Income1.account_id = Income2.account_id -- Compare the same account
+  AND PERIOD_DIFF(
+    Income1.income_month, Income2.income_month
+  ) = 1 -- Check for consecutive months
+GROUP BY 
+  Income1.account_id 
+ORDER BY 
+  Income1.account_id;
