@@ -29,8 +29,8 @@ CandidateProjectScores AS (
     FROM Projects p
     JOIN Candidates c ON p.skill = c.skill
     JOIN ProjectRequirements pr ON p.project_id = pr.project_id
-    GROUP BY p.project_id, c.candidate_id, pr.required_skills_count
-    HAVING COUNT(c.skill) = pr.required_skills_count
+    GROUP BY p.project_id, c.candidate_id -- , pr.required_skills_count
+    HAVING COUNT(c.skill) = MAX(pr.required_skills_count)
 )
 SELECT 
     project_id, 
