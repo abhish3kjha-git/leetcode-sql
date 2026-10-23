@@ -1,29 +1,33 @@
-# Write your MySQL query statement below
-with recursive cte as
-(
-    select a.user_id, visit_date, transaction_date, case when transaction_date is null then 0 else 1 end as txn
-    from visits a left join transactions b on a.user_id = b.user_id and a.visit_date = b.transaction_date
+WITH RECURSIVE visit_txns AS (
+    -- Step 1: Count transactions per visit directly in one aggregation pass
+    SELECT 
+        COUNT(b.transaction_date) AS transactions_count
+    FROM Visits a
+    LEFT JOIN Transactions b 
+        ON a.user_id = b.user_id 
+       AND a.visit_date = b.transaction_date
+    GROUP BY a.user_id, a.visit_date
 ),
-cte2 as
-(
-    select  user_id, visit_date, count(case when txn <> 0 then 1 end) as number_of_txn
-    from cte
-    group by user_id, visit_date
+visit_summary AS (
+    -- Step 2: Calculate visit counts and track max transactions for the sequence generator
+    SELECT 
+        transactions_count, 
+        COUNT(*) AS visits_count
+    FROM visit_txns
+    GROUP BY transactions_count
 ),
-cte3 as
-(
-    select number_of_txn as transactions_count, count(*) as visits_count
-    from cte2
-    group by 1
-),
-cte4 as
-(
-    select 0 as transactions_count 
-
-    union all
-
-    select 1+transactions_count from cte4
-    where transactions_count <(select max(transactions_count) from cte3)
+numbers AS (
+    -- Step 3: Generate 0 to MAX(transactions_count)
+    SELECT 0 AS transactions_count
+    UNION ALL
+    SELECT transactions_count + 1 
+    FROM numbers
+    WHERE transactions_count < (SELECT COALESCE(MAX(transactions_count), 0) FROM visit_summary)
 )
-select a.transactions_count, coalesce(visits_count, 0) as visits_count from cte4 a left join cte3 b on a.transactions_count = b.transactions_count
-order by 1
+SELECT 
+    n.transactions_count,
+    COALESCE(s.visits_count, 0) AS visits_count
+FROM numbers n
+LEFT JOIN visit_summary s 
+    ON n.transactions_count = s.transactions_count
+ORDER BY n.transactions_count;
