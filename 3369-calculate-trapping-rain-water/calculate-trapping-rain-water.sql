@@ -4,11 +4,11 @@ WITH cte AS (
         height, 
         MAX(height) OVER (
             ORDER BY id 
-            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+            range BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
         ) AS max_before,
         MAX(height) OVER (
             ORDER BY id 
-            ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING
+            range BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING
         ) AS max_after
     FROM heights
 )
