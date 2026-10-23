@@ -1,12 +1,27 @@
 # Write your MySQL query statement below
-with cte as
-(
-    select a.item_id, seller_id, item_brand, favorite_brand,
-    row_number() over(partition by seller_id order by order_date) as rnm
-    from orders a join items b on a.item_id = b.item_id 
-    join users c on a.seller_id = c.user_id
+WITH SecondOrders AS (
+    SELECT 
+        seller_id, 
+        item_id
+    FROM (
+        SELECT 
+            seller_id, 
+            item_id,
+            ROW_NUMBER() OVER (
+                PARTITION BY seller_id 
+                ORDER BY order_date ASC
+            ) AS rn
+        FROM Orders
+    ) ranked
+    WHERE rn = 2
 )
-select user_id as seller_id, 
-case when item_brand is null then 'no'
-when item_brand = b.favorite_brand then 'yes' else 'no' end as 2nd_item_fav_brand
-from users a left join cte b on a.user_id = b.seller_id and rnm = 2
+SELECT 
+    u.user_id AS seller_id,
+    CASE 
+        WHEN i.item_brand = u.favorite_brand THEN 'yes' 
+        ELSE 'no' 
+    END AS 2nd_item_fav_brand
+FROM Users u
+LEFT JOIN SecondOrders so ON u.user_id = so.seller_id
+LEFT JOIN Items i ON so.item_id = i.item_id
+ORDER BY u.user_id;
