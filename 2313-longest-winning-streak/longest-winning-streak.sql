@@ -1,7 +1,7 @@
 SELECT player_id, IFNULL(MAX(cnt), 0) AS longest_streak
 FROM Matches m
 LEFT JOIN (
-	SELECT player_id, p_rnk - rnk AS diff, COUNT(p_rnk - rnk) AS cnt
+	SELECT player_id, p_rnk - rnk AS diff,  count(*) as cnt
 	FROM (
 		SELECT *, 	
 			CAST(RANK () OVER (PARTITION BY player_id, result ORDER BY match_day) AS SIGNED) AS rnk,
