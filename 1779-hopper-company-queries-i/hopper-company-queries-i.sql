@@ -1,32 +1,50 @@
-with recursive cte as
-(
-    select case when join_date < '2020-01-01' then 1 else month(join_date) end as mth,
-    count(distinct driver_id) as active_driver
-    from drivers
-    where join_date <= '2020-12-31'
-    group by 1
-),
-cte2 as
-(
-    select month(requested_at) as mth,
-    count(distinct a.ride_id) as accepted_ride
-    from rides a join acceptedRides b on a.ride_id = b.ride_id
-    where year(requested_at) = 2020
-    group by 1
-),
-cte3 as
-(
-    select 1 as mth
-    union 
-    select mth+1 from cte3
-    where mth< 12
-),
-cte4 as
-(
-    select a.mth, coalesce(active_driver, 0) as active_drivers, coalesce(accepted_ride, 0) as accepted_rides
-    from cte3 a left join cte b on a.mth = b.mth
-    left join cte2 c on a.mth = c.mth
+WITH RECURSIVE Months AS (
+    SELECT 
+        1 AS month
+    UNION ALL
+    SELECT 
+        month + 1
+    FROM 
+        Months
+    WHERE 
+        month < 12
+), Driver AS (
+    SELECT 
+        driver_id, 
+	    (CASE WHEN YEAR(join_date) = 2019 THEN '1' ELSE MONTH(join_date) END) AS month
+	FROM 
+        Drivers 
+	WHERE 
+        YEAR(join_date) <= 2020
+), Ride AS (
+    SELECT 
+        MONTH(requested_at) AS month, 
+        a.ride_id
+    FROM 
+        AcceptedRides AS a 
+    INNER JOIN 
+        Rides r
+    ON 
+        r.ride_id = a.ride_id
+    WHERE 
+        YEAR(requested_at) = 2020
 )
--- select * from cte2
-select mth as `month`, sum(active_drivers) over(order by mth) as active_drivers, accepted_rides from cte4
-order by 1
+
+SELECT
+    m.month, 
+    COUNT(DISTINCT d.driver_id) AS active_drivers,
+    COUNT(DISTINCT r.ride_id) AS accepted_rides 
+FROM
+    Months AS m
+LEFT JOIN
+    Driver AS d
+ON 
+    d.month <= m.month
+LEFT JOIN
+    Ride AS r
+ON 
+    m.month = r.month
+GROUP BY 
+    m.month 
+ORDER BY 
+    m.month 
