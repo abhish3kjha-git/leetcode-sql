@@ -29,5 +29,6 @@ cte4 as
     from cte3
     order by mth
 )
+-- select * from cte3
 select mth as `month`, average_ride_distance, average_ride_duration from cte4 where mth<=10
 order by 1
