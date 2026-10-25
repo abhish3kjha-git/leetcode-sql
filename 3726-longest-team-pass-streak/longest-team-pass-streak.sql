@@ -1,22 +1,43 @@
-# Write your MySQL query statement below
-with cte as
-(
-    select a.team_name, pass_from, pass_to, time_stamp,
-    case when a.team_name = b.team_name then 1 else 0 end as stk
-    from passes p join teams a on p.pass_from = a.player_id
-    join teams b on p.pass_to = b.player_id
+WITH pass_data AS (
+    SELECT
+        p.time_stamp,
+        t1.team_name,
+        CASE
+            WHEN t1.team_name = t2.team_name THEN 1
+            ELSE 0
+        END AS successful
+    FROM Passes p
+    JOIN Teams t1
+        ON p.pass_from = t1.player_id
+    JOIN Teams t2
+        ON p.pass_to = t2.player_id
 ),
-cte2 as
-(
-    select *, sum(case when stk = 0 then 1 else 0 end) over(partition by team_name order by time_stamp) as grp
-    from cte
-),cte3 as
-(
-    select team_name, grp, count(*) as streak_length from cte2
-    where stk = 1
-    group by 1, 2
+
+streaks AS (
+    SELECT
+        *,
+        SUM(CASE WHEN successful = 0 THEN 1 ELSE 0 END)
+        OVER (
+            PARTITION BY team_name
+            ORDER BY time_stamp
+        ) AS grp
+    FROM pass_data
+),
+
+counts AS (
+    SELECT
+        team_name,
+        grp,
+        COUNT(*) AS streak_length
+    FROM streaks
+    WHERE successful = 1
+    GROUP BY team_name, grp
 )
-select team_name, max(streak_length) as longest_streak
-from cte3
-group by 1
-order by 1
+
+-- select * from streaks
+SELECT
+    team_name,
+    MAX(streak_length) AS longest_streak
+FROM counts
+GROUP BY team_name
+ORDER BY team_name
