@@ -1,17 +1,12 @@
 # Write your MySQL query statement below
-with cte as
-(
-    select a.*, quantity * price as price 
-    from purchases a join products b on a.product_id = b.product_id
-),
-cte2 as
-(
-    select *, sum(price) over(partition by invoice_id) as sm
-    from cte
-),
-cte3 as
-(
-    select *, rank() over(order by sm desc, invoice_id) as rnk
-    from cte2
+with temp as (
+    select invoice_id, SUM(quantity*price) as 'price2'
+    FROM Purchases a left join Products ON a.product_id=Products.product_id
+    GROUP BY 1 
+    ORDER BY 2 DESC, 1 ASC
+    limit 1
 )
-select product_id, quantity, price from cte3 where rnk = 1
+
+SELECT a.product_id, quantity, quantity*b.price as 'price'
+FROM Purchases a LEFT JOIN Products b ON a.product_id=b.product_id
+WHERE invoice_id = (select invoice_id from temp)
